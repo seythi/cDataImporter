@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	fileDate := time.Now()
+	fileDate time.Time = time.Now()
 )
 
 func main() {
