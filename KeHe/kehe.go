@@ -47,18 +47,21 @@ func parseFile(fPath string, outFile *bufio.Writer) (fRecordCT int) {
 	reader := bufio.NewReader(bytes.NewReader(cont))
 	obody, ispfx, err := reader.ReadLine()
 	for err != io.EOF{
-		if(ispfx){panic("ispfx true")}
+		//if(ispfx){panic("ispfx true")}
 		check(err)
 		//process line, in this case cut off headers
-		if bytes.Contains(obody, []byte("identifier")){
-			continue
-		} else {
+		if !headerRead{ //has not seen header this file
+			headerRead = bytes.Contains(obody, []byte("textbox")) //current line matches header pattern
+			if !headerRead || hasheaders{ //hasnt read the header from this file yet  OR header written already
+				continue
+			}
+		} 
 			_, err2 := outFile.Write(obody)
 			check(err2)
 			_, err2 = outFile.WriteRune('\x0a')
 			check(err2)
 			fRecordCT++
-		}
+		
 
 		//body = fmt.Sprintf("%s", obody) //[]byte -> string
 		
