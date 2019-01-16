@@ -3,11 +3,11 @@ package market6
 import (
 	"bytes"
 	//"encoding/csv"
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"bufio"
 	"os"
 	"path/filepath"
 	//"strings"
@@ -25,16 +25,18 @@ func ReadMaster(fileDate time.Time) (fileCT, recordCT int) {
 	writeTo := bufio.NewWriter(workingFile)
 	defer workingFile.Close()
 	defer writeTo.Flush()
-	filepath.Walk("C:\\workspace\\Go\\bin\\Market6", func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(".\\Market6", func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			fmt.Printf("nodir: %+v \n", info.Name())
-			if info.Name() != "Market6" {return filepath.SkipDir
-				}else {return nil
-				}
+			if info.Name() != "Market6" {
+				return filepath.SkipDir
+			} else {
+				return nil
+			}
 		}
-		fmt.Printf("f: %s\n",path)
-		fRecordCT, body := parseFile(path, writeTo)
-		fmt.Printf("%s", body)
+		fmt.Printf("f: %s\n", path)
+		fRecordCT := parseFile(path, writeTo)
+		//fmt.Printf("counted %s", fRecordCT)
 		fileCT++
 		recordCT += fRecordCT
 		return nil
@@ -42,31 +44,35 @@ func ReadMaster(fileDate time.Time) (fileCT, recordCT int) {
 	return
 }
 func parseFile(fPath string, outFile *bufio.Writer) (fRecordCT int) {
-	var headerRead := false
+
+	headerRead := false
 	cont, err := ioutil.ReadFile(fPath)
 	check(err)
 	reader := bufio.NewReader(bytes.NewReader(cont))
-	obody, _, err := reader.ReadLine()
-	for err != io.EOF{
-		//if(ispfx){panic("ispfx true")}
+	obody, ispfx, err := reader.ReadLine()
+	for err != io.EOF {
+		dontWrite := false
+		if ispfx {
+			panic("ispfx true")
+		}
 		check(err)
 		//process line, in this case cut off headers
-		if !headerRead{ //has not seen header this file
+		if !headerRead { //has not seen header this file
+
 			headerRead = bytes.Contains(obody, []byte("KROGER_DESC")) //current line matches header pattern
-			if !headerRead || hasheaders{ //hasnt read the header from this file yet  OR header written already
-				continue
+			if !headerRead || hasHeaders {                            //hasnt read the header from this file yet  OR header written already
+				dontWrite = true
 			}
-		} 
-		_, err2 := outFile.Write(obody)
-		check(err2)
-		_, err2 = outFile.WriteRune('\x0a')
-		check(err2)
-		fRecordCT++
-		
-
+			hasHeaders = hasHeaders || headerRead
+		}
+		if !dontWrite {
+			_, err2 := outFile.Write(obody)
+			check(err2)
+			_, err2 = outFile.WriteRune('\x0a')
+			check(err2)
+			fRecordCT++
+		}
 		//body = fmt.Sprintf("%s", obody) //[]byte -> string
-		
-
 
 		obody, ispfx, err = reader.ReadLine()
 	}
